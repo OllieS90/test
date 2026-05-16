@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Irish Around Sydney</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal:       #1a6b6b;
+    --teal-l:     #2a8a8a;
+    --teal-pale:  #e8f4f4;
+    --warm:       #faf8f4;
+    --warm-d:     #f0ece4;
+    --text:       #1c2226;
+    --text-mid:   #4a5568;
+    --text-soft:  #718096;
+    --gold:       #c9882a;
+    --gold-pale:  #fef9ee;
+    --red-soft:   #fee2e2;
+    --red:        #c0392b;
+    --green-pale: #e8f5ee;
+    --green:      #1a7a45;
+    --border:     #ddd8ce;
+    --radius:     14px;
+    --radius-sm:  8px;
+    --shadow:     0 2px 12px rgba(26,107,107,0.08);
+    --shadow-lg:  0 8px 40px rgba(26,107,107,0.15);
+  }
+
+  html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--warm); color: var(--text); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  h1,h2,h3,h4 { font-family: 'Playfair Display', serif; }
+
+  /* ── App shell ── */
+  #app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ── Nav ── */
+  .nav {
+    background: var(--teal); color: white;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; height: 56px; flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+    z-index: 10;
+  }
+  .nav-brand { display: flex; align-items: center; gap: 10px; }
+  .nav-logo { font-size: 1.45rem; }
+  .nav-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 600; }
+  .nav-sub { font-size: 0.68rem; opacity: 0.7; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 300; }
+  .nav-right { display: flex; align-items: center; gap: 8px; }
+  .nav-tabs { display: flex; gap: 3px; }
+  .nav-tab { background: transparent; border: none; color: rgba(255,255,255,0.65); padding: 6px 11px; border-radius: 6px; cursor: pointer; font-family: 'DM Sans'; font-size: 0.8rem; font-weight: 500; transition: all 0.15s; }
+  .nav-tab:hover { background: rgba(255,255,255,0.12); color: white; }
+  .nav-tab.active { background: rgba(255,255,255,0.22); color: white; }
+  .nav-user { background: rgba(255,255,255,0.14); border: none; color: white; padding: 5px 11px; border-radius: 16px; cursor: pointer; font-family: 'DM Sans'; font-size: 0.75rem; display: flex; align-items: center; gap: 5px; }
+  .nav-user:hover { background: rgba(255,255,255,0.22); }
+
+  /* ── API banner ── */
+  .api-banner { background: var(--gold-pale); border-bottom: 1px solid rgba(201,136,42,0.2); padding: 8px 18px; display: flex; align-items: center; gap: 10px; font-size: 0.8rem; flex-shrink: 0; }
+  .api-banner input { flex: 1; max-width: 280px; padding: 5px 10px; border: 1px solid rgba(201,136,42,0.4); border-radius: 6px; font-family: 'DM Sans'; font-size: 0.8rem; background: white; outline: none; }
+  .api-banner input:focus { border-color: var(--gold); }
+  .api-set-bar { background: var(--teal-pale); border-bottom: 1px solid var(--border); padding: 5px 18px; display: flex; align-items: center; gap: 10px; font-size: 0.75rem; color: var(--teal); flex-shrink: 0; }
+  .api-set-bar button { background: none; border: none; color: var(--text-soft); font-size: 0.75rem; cursor: pointer; text-decoration: underline; }
+
+  /* ── Panels ── */
+  .main { flex: 1; overflow: hidden; }
+  .panel { height: 100%; overflow-y: auto; padding: 24px; }
+  .panel::-webkit-scrollbar { width: 5px; }
+  .panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+  .panel.chat-panel { padding: 0; display: flex; flex-direction: column; }
+
+  /* ── Screen visibility ── */
+  .screen { display: none; height: 100%; }
+  .screen.active { display: flex; flex-direction: column; height: 100%; }
+
+  /* ════════════════════════════
+     ONBOARDING
+  ════════════════════════════ */
+  .onboard-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 30px 16px; overflow-y: auto; }
+  .onboard-card { background: white; border-radius: 20px; box-shadow: var(--shadow-lg); padding: 36px; max-width: 540px; width: 100%; animation: fadeUp 0.4s ease; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+
+  .step-dots { display: flex; gap: 6px; margin-bottom: 26px; }
+  .step-dot { height: 4px; flex: 1; border-radius: 2px; background: var(--border); transition: background 0.3s; }
+  .step-dot.done { background: var(--teal); }
+  .step-dot.active { background: var(--teal-l); }
+
+  .eyebrow { font-size: 0.7rem; font-weight: 600; color: var(--teal); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; font-family: 'DM Sans'; }
+  .onboard-title { font-size: 1.6rem; font-weight: 700; line-height: 1.2; margin-bottom: 6px; }
+  .onboard-sub { color: var(--text-soft); font-size: 0.88rem; margin-bottom: 26px; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-weight: 500; font-size: 0.82rem; color: var(--text-mid); margin-bottom: 5px; }
+  .field input, .field select { width: 100%; padding: 10px 13px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans'; font-size: 0.9rem; color: var(--text); background: var(--warm); outline: none; transition: border-color 0.15s; }
+  .field input:focus, .field select:focus { border-color: var(--teal); background: white; }
+
+  .chip-group { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip { padding: 6px 13px; border: 1.5px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 0.8rem; background: white; color: var(--text-mid); transition: all 0.15s; font-family: 'DM Sans'; }
+  .chip:hover { border-color: var(--teal); color: var(--teal); }
+  .chip.sel { background: var(--teal); border-color: var(--teal); color: white; font-weight: 500; }
+
+  .onboard-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 26px; }
+
+  .btn { padding: 10px 22px; border-radius: 8px; border: none; cursor: pointer; font-family: 'DM Sans'; font-size: 0.88rem; font-weight: 600; transition: all 0.15s; }
+  .btn-primary { background: var(--teal); color: white; }
+  .btn-primary:hover:not(:disabled) { background: var(--teal-l); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(26,107,107,0.28); }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-ghost { background: transparent; color: var(--text-soft); }
+  .btn-ghost:hover { color: var(--text); }
+  .btn-sm { padding: 6px 13px; font-size: 0.8rem; }
+  .btn-outline { background: white; border: 1.5px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* ════════════════════════════
+     CHAT
+  ════════════════════════════ */
+  .chat-header { padding: 14px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; background: white; }
+  .chat-header h2 { font-size: 1.05rem; }
+  .chat-header p { font-size: 0.78rem; color: var(--text-soft); }
+  .profile-pill { background: var(--teal-pale); padding: 5px 12px; border-radius: 16px; font-size: 0.75rem; color: var(--teal); font-weight: 500; }
+
+  .messages { flex: 1; overflow-y: auto; padding: 18px 18px 10px; display: flex; flex-direction: column; gap: 13px; }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+  .msg { display: flex; gap: 9px; max-width: 84%; animation: msgIn 0.22s ease; }
+  @keyframes msgIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg-av { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; margin-top: 3px; }
+  .msg.assistant .msg-av { background: var(--teal); color: white; font-weight: 700; }
+  .msg.user .msg-av { background: var(--warm-d); color: var(--text-mid); }
+  .bubble { padding: 10px 14px; border-radius: 14px; font-size: 0.875rem; line-height: 1.65; }
+  .msg.assistant .bubble { background: white; border: 1px solid var(--border); border-top-left-radius: 4px; box-shadow: var(--shadow); }
+  .msg.user .bubble { background: var(--teal); color: white; border-top-right-radius: 4px; }
+  .bubble p { margin-bottom: 7px; }
+  .bubble p:last-child { margin-bottom: 0; }
+  .bubble ul, .bubble ol { padding-left: 17px; margin: 5px 0; }
+  .bubble li { margin-bottom: 3px; }
+  .bubble strong { font-weight: 600; }
+  .bubble a { color: var(--teal); }
+  .msg.user .bubble a { color: rgba(255,255,255,0.82); }
+  .bubble h3 { font-size: 0.92rem; margin: 8px 0 4px; }
+
+  .typing { display: flex; gap: 4px; align-items: center; }
+  .tdot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal-l); animation: tb 1.2s ease infinite; }
+  .tdot:nth-child(2) { animation-delay: 0.15s; }
+  .tdot:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes tb { 0%,60%,100% { transform:translateY(0); } 30% { transform:translateY(-5px); } }
+
+  .chat-bottom { padding: 12px 16px; border-top: 1px solid var(--border); background: white; flex-shrink: 0; }
+  .quick-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 9px; }
+  .qchip { padding: 5px 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--warm); color: var(--text-mid); font-size: 0.74rem; cursor: pointer; transition: all 0.13s; font-family: 'DM Sans'; }
+  .qchip:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-pale); }
+  .input-row { display: flex; gap: 8px; align-items: flex-end; }
+  .chat-input { flex: 1; padding: 9px 13px; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'DM Sans'; font-size: 0.875rem; resize: none; outline: none; background: var(--warm); transition: border-color 0.15s; min-height: 40px; max-height: 110px; line-height: 1.5; }
+  .chat-input:focus { border-color: var(--teal); background: white; }
+  .send-btn { width: 40px; height: 40px; border-radius: 10px; background: var(--teal); border: none; color: white; cursor: pointer; font-size: 1.05rem; transition: all 0.15s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .send-btn:hover:not(:disabled) { background: var(--teal-l); transform: scale(1.06); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .err-bar { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 9px 14px; font-size: 0.8rem; color: #991b1b; margin: 0 18px 10px; }
+
+  /* ════════════════════════════
+     CHECKLIST
+  ════════════════════════════ */
+  .cl-head { margin-bottom: 20px; }
+  .cl-head h2 { font-size: 1.45rem; margin-bottom: 4px; }
+  .cl-head p { color: var(--text-soft); font-size: 0.86rem; }
+  .progress-wrap { margin: 14px 0; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-soft); margin-bottom: 5px; }
+  .pbar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .pfill { height: 100%; background: var(--teal); border-radius: 3px; transition: width 0.5s ease; }
+
+  .cat-block { margin-bottom: 14px; }
+  .cat-hdr { display: flex; align-items: center; gap: 10px; padding: 11px 14px; background: white; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: box-shadow 0.15s; }
+  .cat-hdr:hover { box-shadow: var(--shadow); }
+  .cat-icon { font-size: 1.1rem; }
+  .cat-name { font-weight: 600; font-size: 0.88rem; flex: 1; }
+  .cat-prog { font-size: 0.75rem; color: var(--text-soft); }
+  .cat-chev { transition: transform 0.2s; font-size: 0.65rem; color: var(--text-soft); }
+  .cat-chev.open { transform: rotate(90deg); }
+
+  .task-list { padding: 5px 0 2px; display: flex; flex-direction: column; gap: 5px; }
+  .task { display: flex; align-items: flex-start; gap: 11px; padding: 11px 13px; background: white; border: 1px solid var(--border); border-left: 3px solid transparent; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s; }
+  .task:hover { box-shadow: var(--shadow); border-left-color: var(--teal-l); }
+  .task.done { opacity: 0.58; border-left-color: var(--green) !important; }
+  .task.urgent { border-left-color: var(--gold); }
+  .task.asap { border-left-color: var(--red); }
+  .tcheck { width: 19px; height: 19px; border: 2px solid var(--border); border-radius: 5px; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; transition: all 0.15s; }
+  .task.done .tcheck { background: var(--green); border-color: var(--green); color: white; }
+  .tbody { flex: 1; min-width: 0; }
+  .tname { font-weight: 500; font-size: 0.86rem; }
+  .task.done .tname { text-decoration: line-through; color: var(--text-soft); }
+  .tdesc { font-size: 0.76rem; color: var(--text-soft); margin-top: 2px; line-height: 1.4; }
+  .tbadges { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
+  .badge { padding: 2px 7px; border-radius: 8px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .b-asap { background: var(--red-soft); color: var(--red); }
+  .b-urgent { background: var(--gold-pale); color: var(--gold); }
+  .b-week1 { background: var(--teal-pale); color: var(--teal); }
+  .b-optional { background: var(--warm-d); color: var(--text-soft); }
+  .src-link { font-size: 0.7rem; color: var(--teal); text-decoration: underline; }
+
+  /* ════════════════════════════
+     DOCUMENT ANALYZER
+  ════════════════════════════ */
+  .doc-head { margin-bottom: 20px; }
+  .doc-head h2 { font-size: 1.45rem; margin-bottom: 4px; }
+  .doc-head p { color: var(--text-soft); font-size: 0.86rem; }
+  .doc-type-row { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+  .doc-paste { width: 100%; min-height: 130px; padding: 13px; border: 1.5px solid var(--border); border-radius: var(--radius); font-family: 'DM Sans'; font-size: 0.875rem; resize: vertical; outline: none; background: white; transition: border-color 0.15s; margin-bottom: 12px; }
+  .doc-paste:focus { border-color: var(--teal); }
+  .analysis-card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; animation: fadeUp 0.3s ease; margin-top: 16px; }
+  .verdict-bar { padding: 10px 14px; border-radius: 8px; font-weight: 600; font-size: 0.86rem; margin-bottom: 16px; }
+  .a-section { margin-bottom: 15px; }
+  .a-section h4 { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-soft); margin-bottom: 8px; font-family: 'DM Sans'; }
+  .flag { display: flex; gap: 9px; padding: 9px 12px; border-radius: 6px; margin-bottom: 5px; font-size: 0.83rem; align-items: flex-start; }
+  .flag-warn { background: var(--gold-pale); }
+  .flag-danger { background: var(--red-soft); }
+  .flag-ok { background: var(--green-pale); }
+  .action-item { display: flex; gap: 8px; margin-bottom: 5px; font-size: 0.83rem; }
+  .action-num { color: var(--teal); font-weight: 700; flex-shrink: 0; }
+
+  /* ── Responsive ── */
+  @media (max-width: 580px) {
+    .nav-tabs { display: none; }
+    .onboard-card { padding: 22px 16px; }
+    .panel { padding: 14px; }
+    .msg { max-width: 93%; }
+    .mobile-tabs { display: flex !important; }
+  }
+  .mobile-tabs { display: none; gap: 2px; }
+  .mobile-tab { background: transparent; border: none; padding: 5px 9px; border-radius: 6px; font-family: 'DM Sans'; font-size: 0.75rem; cursor: pointer; color: var(--text-soft); }
+  .mobile-tab.active { background: var(--teal); color: white; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <nav class="nav">
+    <div class="nav-brand">
+      <span class="nav-logo">☘️</span>
+      <div>
+        <div class="nav-title">Irish Around Sydney</div>
+        <div class="nav-sub">Sydney · First 90 Days</div>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="nav-tabs" id="navTabs" style="display:none">
+        <button class="nav-tab active" onclick="switchTab('chat')">💬 Chat</button>
+        <button class="nav-tab" onclick="switchTab('checklist')">✅ Checklist</button>
+        <button class="nav-tab" onclick="switchTab('docs')">📄 Documents</button>
+      </div>
+      <button class="nav-user" id="navUser" style="display:none" onclick="resetProfile()">👤 <span id="navName"></span> ↩</button>
+    </div>
+  </nav>
+
+  <!-- API key banners -->
+  <div id="apiBanner" class="api-banner" style="display:none">
+    <span>🔑</span>
+    <span style="font-weight:500">Enter your Anthropic API key to enable AI:</span>
+    <input type="password" id="apiInput" placeholder="sk-ant-..." />
+    <button class="btn btn-sm btn-primary" onclick="saveApiKey()">Save</button>
+    <a href="https://console.anthropic.com" target="_blank" style="font-size:0.78rem;color:var(--gold);white-space:nowrap">Get a key →</a>
+  </div>
+  <div id="apiSetBar" class="api-set-bar" style="display:none">
+    <span>✓ API key saved</span>
+    <div class="mobile-tabs" id="mobileTabs">
+      <button class="mobile-tab active" onclick="switchTab('chat')">💬 Chat</button>
+      <button class="mobile-tab" onclick="switchTab('checklist')">✅ List</button>
+      <button class="mobile-tab" onclick="switchTab('docs')">📄 Docs</button>
+    </div>
+    <span style="flex:1"></span>
+    <button onclick="clearApiKey()">Change key</button>
+  </div>
+
+  <div class="main">
+
+    <!-- ══ ONBOARDING ══ -->
+    <div id="screenOnboard" class="screen active panel" style="padding:0">
+      <div class="onboard-wrap">
+        <div class="onboard-card" id="onboardCard">
+          <!-- injected by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CHAT ══ -->
+    <div id="screenChat" class="screen chat-panel" style="display:none">
+      <div class="chat-header">
+        <div>
+          <h2>Your Concierge</h2>
+          <p>Ask anything about settling in Sydney</p>
+        </div>
+        <div class="profile-pill" id="profilePill"></div>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div id="errBar" class="err-bar" style="display:none"></div>
+      <div class="chat-bottom">
+        <div class="quick-row" id="quickRow"></div>
+        <div class="input-row">
+          <textarea class="chat-input" id="chatInput" placeholder="Ask about TFN, Medicare, renting in Sydney, work rights..." rows="1"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CHECKLIST ══ -->
+    <div id="screenChecklist" class="screen" style="display:none">
+      <div class="panel">
+        <div class="cl-head">
+          <h2>Your Arrival Checklist</h2>
+          <p id="clSubtitle">Personalised for your visa — tackle in order for the smoothest start.</p>
+          <div class="progress-wrap">
+            <div class="progress-label">
+              <span id="clProgress">0 of 0 tasks complete</span>
+              <span id="clPct">0%</span>
+            </div>
+            <div class="pbar"><div class="pfill" id="pfill" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div id="taskList"></div>
+      </div>
+    </div>
+
+    <!-- ══ DOCUMENTS ══ -->
+    <div id="screenDocs" class="screen" style="display:none">
+      <div class="panel">
+        <div class="doc-head">
+          <h2>Document Interpreter</h2>
+          <p>Paste text from any Australian document — lease, payslip, visa grant, super statement — and get a plain-English breakdown with flags. Perfect for decoding Aussie paperwork.</p>
+        </div>
+        <div class="doc-type-row" id="docTypeRow"></div>
+        <textarea class="doc-paste" id="docPaste" placeholder="Paste your document text here..." rows="7"></textarea>
+        <button class="btn btn-primary" id="analyzeBtn" onclick="analyzeDoc()">Analyze Document →</button>
+        <div id="analysisResult"></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  DATA
+// ════════════════════════════════════════════════════════
+
+const VISA_TYPES = [
+  "482 (Temp Skill Shortage)","500 (Student)","189 (Skilled PR)",
+  "190 (Skilled Nominated PR)","485 (Graduate)","600 (Visitor)",
+  "820/801 (Partner)","417 (Working Holiday)","462 (Work & Holiday)","Other"
+];
+const EMPLOYMENT = ["Employed (full-time)","Employed (part-time/casual)","Self-employed","Job seeking","Student","Not working"];
+const ORIGINS = ["Ireland","India","China","UK","USA","Philippines","Nepal","South Korea","Vietnam","Malaysia","Germany","Brazil","South Africa","Other"];
+const FAMILY_OPTIONS = ["Solo","With partner","With partner & children","With children only"];
+
+const TASK_CATEGORIES = [
+  { id:"identity", icon:"🪪", name:"Identity & Tax", tasks:[
+    { id:"tfn", name:"Apply for Tax File Number (TFN)", desc:"Do this today if employed. Apply free via ATO — instant online or 28 days by mail.", badge:"asap", link:"https://www.ato.gov.au/individuals-and-families/tax-file-number/apply-for-a-tfn" },
+    { id:"myGov", name:"Create myGov account", desc:"Your hub for Medicare, ATO, Centrelink and more.", badge:"week1", link:"https://my.gov.au" },
+    { id:"abn", name:"Apply for ABN (if self-employed)", desc:"Required for freelance or contractor work in Australia.", badge:"optional" },
+  ]},
+  { id:"health", icon:"🏥", name:"Health Insurance & Medicare", tasks:[
+    { id:"medicare", name:"Enrol in Medicare", desc:"If your visa allows, enrol within 3 months. Bring passport, visa grant, and proof of residency.", badge:"week1", link:"https://www.servicesaustralia.gov.au/how-to-enrol-in-medicare" },
+    { id:"ovhc", name:"Arrange OVHC/OSHC if required", desc:"Many temporary visas require Overseas Visitor Health Cover. Check your visa conditions now.", badge:"asap" },
+  ]},
+  { id:"banking", icon:"🏦", name:"Banking & Money", tasks:[
+    { id:"bank", name:"Open Australian bank account", desc:"CBA, ANZ, NAB, Westpac all allow day-1 account opening. Bring passport.", badge:"week1" },
+    { id:"super", name:"Set up Superannuation", desc:"Your employer must pay 11.5% super from day 1 — even on temporary visas. Choose a fund or use ATO's stapled system.", badge:"urgent" },
+    { id:"tax", name:"Understand tax filing obligations", desc:"Tax year: 1 July–30 June. Most workers lodge a return by 31 October.", badge:"optional" },
+  ]},
+  { id:"housing", icon:"🏠", name:"Housing & Accommodation", tasks:[
+    { id:"rta", name:"Know your tenant rights", desc:"Each state has an RTA. Understand bond, entry notices, and repair obligations before signing.", badge:"week1", link:"https://www.tenants.org.au" },
+    { id:"rental-app", name:"Build a rental application", desc:"Gather: passport, employment letter, 3 months payslips, references. Landlords want 100 ID points.", badge:"week1" },
+    { id:"bond", name:"Lodge bond with state authority", desc:"Landlord must lodge your bond within 10 business days. Request a receipt.", badge:"urgent" },
+  ]},
+  { id:"comms", icon:"📱", name:"Phone & Internet", tasks:[
+    { id:"sim", name:"Get an Australian SIM card", desc:"Optus, Telstra, Vodafone for coverage; Aldi Mobile & Boost for budget on Telstra network.", badge:"asap" },
+    { id:"nbn", name:"Set up home internet (NBN)", desc:"Compare via Canstar Blue. Allow 2–4 weeks for installation after moving in.", badge:"optional" },
+  ]},
+  { id:"transport", icon:"🚗", name:"Transport & Driving", tasks:[
+    { id:"licence", name:"Convert overseas driving licence", desc:"Most countries get 3 months on their home licence, then convert at your state's transport authority.", badge:"urgent" },
+    { id:"opal", name:"Get a public transport card", desc:"Opal (NSW), Myki (VIC), Go Card (QLD). Top up online or at stations.", badge:"week1" },
+    { id:"roadworthy", name:"Roadworthy certificate if buying a car", desc:"Required when transferring registration in most states. Cost ~$100–$300 from a licensed tester.", badge:"optional" },
+  ]},
+  { id:"work", icon:"💼", name:"Employment", tasks:[
+    { id:"resume", name:"Localise your resume for Australia", desc:"Australian CVs: 2 pages, no photo, personal summary at the top. Different from Indian/UK/US formats.", badge:"urgent" },
+    { id:"fairwork", name:"Know your Fair Work rights", desc:"All workers are protected. Know your minimum wage, leave entitlements, and penalty rates.", badge:"week1", link:"https://www.fairwork.gov.au" },
+    { id:"scam", name:"Learn to spot job scams", desc:"Red flags: TFN requested before a written contract, 'commission only', or paying for a 'starter kit'.", badge:"asap" },
+  ]},
+];
+
+const QUICK_PROMPTS = [
+  "What should I do first?","How do I get a TFN?","Am I eligible for Medicare?",
+  "Best suburbs for Irish in Sydney?","How does superannuation work?","How do I get an Opal card?"
+];
+
+const DOC_TYPES = ["Lease Agreement","Payslip","Visa Grant Notice","Super Statement","Employment Contract","Tax Assessment","Other"];
+
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+
+let profile = null;
+let apiKey = localStorage.getItem('ac_apikey') || '';
+let messages = [];
+let loading = false;
+let currentTab = 'chat';
+let taskDone = {};
+let docType = 'Lease Agreement';
+let openCats = { identity:true, health:true, banking:true };
+let onboardStep = 0;
+let onboardData = { name:'', visa:'', arrivalDate:'', origin:'', employment:'', family:'Solo' };
+
+// ════════════════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════════════════
+
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('ac_profile');
+  if (saved) {
+    profile = JSON.parse(saved);
+    taskDone = JSON.parse(localStorage.getItem('ac_tasks') || '{}');
+    bootApp();
+  } else {
+    renderOnboardStep();
+  }
+  if (apiKey) {
+    document.getElementById('apiBanner').style.display = 'none';
+    document.getElementById('apiSetBar').style.display = 'flex';
+  }
+  // auto-resize textarea
+  document.getElementById('chatInput').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 110) + 'px';
+    document.getElementById('sendBtn').disabled = !this.value.trim() || loading;
+  });
+  document.getElementById('chatInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+});
+
+function bootApp() {
+  document.getElementById('screenOnboard').style.display = 'none';
+  document.getElementById('screenOnboard').classList.remove('active');
+  document.getElementById('navTabs').style.display = 'flex';
+  document.getElementById('navUser').style.display = 'flex';
+  document.getElementById('navName').textContent = profile.name;
+  if (apiKey) {
+    document.getElementById('apiBanner').style.display = 'none';
+    document.getElementById('apiSetBar').style.display = 'flex';
+  } else {
+    document.getElementById('apiBanner').style.display = 'flex';
+  }
+  buildChecklist();
+  buildDocTypes();
+  buildQuickPrompts();
+  document.getElementById('profilePill').textContent = `${profile.visa.split(' ')[0]} · ${profile.origin||'New arrival'}`;
+  switchTab('chat');
+  addWelcomeMessage();
+}
+
+// ════════════════════════════════════════════════════════
+//  ONBOARDING
+// ════════════════════════════════════════════════════════
+
+const onboardSteps = [
+  {
+    eyebrow: "Welcome to Sydney 🇦🇺☘️",
+    title: "Let's get you settled.",
+    sub: "We'll personalise your arrival guide in 3 quick steps. Everything stays on your device.",
+    render: () => `
+      <div class="field"><label>Your first name</label>
+        <input type="text" id="f_name" placeholder="e.g. Priya" value="${onboardData.name}" oninput="onboardData.name=this.value;checkNext()" /></div>
+      <div class="field"><label>Approximate arrival date</label>
+        <input type="date" id="f_date" value="${onboardData.arrivalDate}" onchange="onboardData.arrivalDate=this.value" /></div>
+      <div class="field"><label>Country of origin</label>
+        <div class="chip-group">${ORIGINS.map(c=>`<button class="chip ${onboardData.origin===c?'sel':''}" onclick="onboardData.origin='${c}';renderOnboardStep()">${c}</button>`).join('')}</div>
+      </div>`,
+    valid: () => onboardData.name.trim().length > 0
+  },
+  {
+    eyebrow: "Your visa situation",
+    title: "What brings you to Australia?",
+    sub: "Your visa type determines Medicare eligibility, work rights, and the right order of tasks.",
+    render: () => `
+      <div class="field"><label>Visa type</label>
+        <div class="chip-group">${VISA_TYPES.map(v=>`<button class="chip ${onboardData.visa===v?'sel':''}" onclick="onboardData.visa='${v.replace(/'/g,"\\'")}';renderOnboardStep()">${v}</button>`).join('')}</div>
+      </div>`,
+    valid: () => onboardData.visa.length > 0
+  },
+  {
+    eyebrow: "Almost done",
+    title: "Work & family situation",
+    sub: "Helps us prioritise super, dependent Medicare enrolment, and job-seeking support.",
+    render: () => `
+      <div class="field"><label>Employment status</label>
+        <div class="chip-group">${EMPLOYMENT.map(e=>`<button class="chip ${onboardData.employment===e?'sel':''}" onclick="onboardData.employment='${e}';renderOnboardStep()">${e}</button>`).join('')}</div>
+      </div>
+      <div class="field" style="margin-top:14px"><label>Who are you arriving with?</label>
+        <div class="chip-group">${FAMILY_OPTIONS.map(f=>`<button class="chip ${onboardData.family===f?'sel':''}" onclick="onboardData.family='${f}';renderOnboardStep()">${f}</button>`).join('')}</div>
+      </div>`,
+    valid: () => onboardData.employment.length > 0
+  }
+];
+
+function renderOnboardStep() {
+  const s = onboardSteps[onboardStep];
+  const dots = onboardSteps.map((_,i) =>
+    `<div class="step-dot ${i<onboardStep?'done':i===onboardStep?'active':''}"></div>`).join('');
+  const isLast = onboardStep === onboardSteps.length - 1;
+  document.getElementById('onboardCard').innerHTML = `
+    <div class="step-dots">${dots}</div>
+    <div class="eyebrow">${s.eyebrow}</div>
+    <h1 class="onboard-title">${s.title}</h1>
+    <p class="onboard-sub">${s.sub}</p>
+    ${s.render()}
+    <div class="onboard-nav">
+      ${onboardStep>0 ? `<button class="btn btn-ghost" onclick="onboardStep--;renderOnboardStep()">← Back</button>` : `<div></div>`}
+      <button class="btn btn-primary" id="nextBtn" onclick="${isLast?'completeOnboard()':'onboardNext()'}" ${s.valid()?'':'disabled'}>
+        ${isLast ? 'Start my guide ✨' : 'Continue →'}
+      </button>
+    </div>`;
+}
+
+function checkNext() {
+  const btn = document.getElementById('nextBtn');
+  if (btn) btn.disabled = !onboardSteps[onboardStep].valid();
+}
+
+function onboardNext() {
+  if (onboardSteps[onboardStep].valid()) {
+    onboardStep++;
+    renderOnboardStep();
+  }
+}
+
+function completeOnboard() {
+  if (!onboardSteps[onboardStep].valid()) return;
+  profile = { ...onboardData };
+  localStorage.setItem('ac_profile', JSON.stringify(profile));
+  bootApp();
+}
+
+function resetProfile() {
+  if (!confirm('Reset your profile and start over?')) return;
+  localStorage.removeItem('ac_profile');
+  localStorage.removeItem('ac_tasks');
+  profile = null; messages = []; taskDone = {}; onboardStep = 0;
+  onboardData = { name:'', visa:'', arrivalDate:'', origin:'', employment:'', family:'Solo' };
+  document.getElementById('navTabs').style.display = 'none';
+  document.getElementById('navUser').style.display = 'none';
+  ['chat','checklist','docs'].forEach(id => {
+    const el = document.getElementById('screen'+id.charAt(0).toUpperCase()+id.slice(1));
+    if (el) { el.style.display='none'; el.classList.remove('active'); }
+  });
+  document.getElementById('screenOnboard').style.display = 'flex';
+  document.getElementById('screenOnboard').classList.add('active');
+  renderOnboardStep();
+}
+
+// ════════════════════════════════════════════════════════
+//  TAB SWITCHING
+// ════════════════════════════════════════════════════════
+
+function switchTab(tab) {
+  currentTab = tab;
+  const ids = { chat:'screenChat', checklist:'screenChecklist', docs:'screenDocs' };
+  Object.entries(ids).forEach(([t, sid]) => {
+    const el = document.getElementById(sid);
+    el.style.display = t === tab ? 'flex' : 'none';
+    if (t === tab) el.classList.add('active'); else el.classList.remove('active');
+  });
+  // update nav tabs
+  document.querySelectorAll('.nav-tab').forEach(b => {
+    b.classList.toggle('active', b.onclick.toString().includes(`'${tab}'`));
+  });
+  document.querySelectorAll('.mobile-tab').forEach(b => {
+    b.classList.toggle('active', b.onclick.toString().includes(`'${tab}'`));
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  API KEY
+// ════════════════════════════════════════════════════════
+
+function saveApiKey() {
+  const val = document.getElementById('apiInput').value.trim();
+  if (!val) return;
+  apiKey = val;
+  localStorage.setItem('ac_apikey', apiKey);
+  document.getElementById('apiBanner').style.display = 'none';
+  document.getElementById('apiSetBar').style.display = 'flex';
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function clearApiKey() {
+  apiKey = '';
+  localStorage.removeItem('ac_apikey');
+  document.getElementById('apiSetBar').style.display = 'none';
+  document.getElementById('apiBanner').style.display = 'flex';
+}
+
+// ════════════════════════════════════════════════════════
+//  CHAT
+// ════════════════════════════════════════════════════════
+
+function buildSystemPrompt() {
+  return `You are the Irish Around Sydney concierge — a warm, expert AI guide for Irish people settling in Sydney, Australia during their first 90 days. You combine the knowledge of an immigration lawyer, accountant, and a well-connected Irish expat friend who knows Sydney inside out.
+
+USER PROFILE:
+- Name: ${profile.name}
+- Visa type: ${profile.visa}
+- Arrival date: ${profile.arrivalDate || 'Recent'}
+- Country of origin: ${profile.origin || 'Ireland'}
+- Employment: ${profile.employment || 'Not specified'}
+- Family: ${profile.family || 'Solo'}
+
+YOUR STYLE: Warm, friendly, reassuring — like a mate from home who's been in Sydney a few years. Specific and actionable. Plain English. Flag when professional advice is needed. Where relevant, draw on knowledge of the Irish community in Sydney (Irish bars, GAA clubs, Irish community groups like the Irish Network Australia).
+
+SYDNEY-SPECIFIC KNOWLEDGE: When relevant, mention Sydney-specific details — NSW transport (Opal card), Service NSW for licence conversion, NSW Fair Trading for bonds, specific Sydney suburbs popular with Irish expats (Bondi, Manly, Newtown, Surry Hills, Coogee), and local resources.
+
+RULES:
+1. Cite official .gov.au sources for procedural advice using markdown links: [Source](URL)
+2. For Medicare: Irish citizens on most working visas qualify — mention the Ireland-Australia Reciprocal Health Care Agreement where relevant
+3. All employees (including temporary visa holders) are entitled to superannuation contributions
+4. Recommend a registered migration agent (MARA) or accountant for complex matters
+5. Tailor answers to this user's specific visa and situation
+6. Use bullet points for steps, keep responses focused and scannable
+
+Key Australian government sources:
+- ATO (tax, TFN, ABN): https://www.ato.gov.au
+- Services Australia (Medicare, Centrelink): https://www.servicesaustralia.gov.au
+- Fair Work (employment rights): https://www.fairwork.gov.au
+- Home Affairs (visa): https://immi.homeaffairs.gov.au
+- myGov: https://my.gov.au
+- Service NSW (licence, rego): https://www.service.nsw.gov.au
+- MARA (migration agents): https://www.mara.gov.au`;
+}
+
+function addWelcomeMessage() {
+  const hasMedicare = ['482','189','190','820','485'].some(v => profile.visa.startsWith(v));
+  const welcome = `Welcome to Sydney, **${profile.name}**! ☘️🇦🇺\n\nI'm your Irish Around Sydney guide — think of me as a mate from home who's been here a few years and knows all the ropes. You're on a **${profile.visa}** visa${profile.origin ? ` arriving from **${profile.origin}**` : ''}, and I'm here to make your first 90 days as smooth as possible.\n\nHere's what to prioritise first:\n\n- **TFN application** — do this today if you plan to work\n${hasMedicare ? '- **Medicare** — good news: Irish citizens benefit from a Reciprocal Health Care Agreement with Australia\n' : '- **Health insurance (OVHC)** — check your visa conditions immediately\n'}- **Bank account** — needed before your first pay\n- **Superannuation** — your employer must contribute from day 1, even on a temporary visa\n- **Opal card** — Sydney's public transport card, grab one at any train station\n\nWhat would you like to tackle first?`;
+  messages = [{ role:'assistant', content:welcome }];
+  renderMessages();
+}
+
+function buildQuickPrompts() {
+  const row = document.getElementById('quickRow');
+  row.innerHTML = QUICK_PROMPTS.map(q =>
+    `<button class="qchip" onclick="sendMessage('${q.replace(/'/g,"\\'")}')">${q}</button>`
+  ).join('');
+}
+
+function renderMessages() {
+  const container = document.getElementById('messages');
+  container.innerHTML = messages.map(msg => {
+    const isUser = msg.role === 'user';
+    return `<div class="msg ${msg.role}">
+      <div class="msg-av">${isUser ? '👤' : '✦'}</div>
+      <div class="bubble">${formatMessage(msg.content)}</div>
+    </div>`;
+  }).join('');
+  if (loading) {
+    container.innerHTML += `<div class="msg assistant">
+      <div class="msg-av">✦</div>
+      <div class="bubble"><div class="typing"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div></div>
+    </div>`;
+  }
+  container.scrollTop = container.scrollHeight;
+}
+
+function formatMessage(text) {
+  // Convert markdown-ish text to HTML
+  let html = '';
+  const lines = text.split('\n');
+  for (const line of lines) {
+    if (line.startsWith('### ')) {
+      html += `<h3>${inlineFormat(line.slice(4))}</h3>`;
+    } else if (line.startsWith('## ')) {
+      html += `<h3>${inlineFormat(line.slice(3))}</h3>`;
+    } else if (line.match(/^[\-\*] /)) {
+      html += `<ul><li>${inlineFormat(line.slice(2))}</li></ul>`;
+    } else if (line.match(/^\d+\. /)) {
+      html += `<ol><li>${inlineFormat(line.replace(/^\d+\. /,''))}</li></ol>`;
+    } else if (line.trim() === '') {
+      html += '<br>';
+    } else {
+      html += `<p>${inlineFormat(line)}</p>`;
+    }
+  }
+  // Merge consecutive ul/ol tags
+  html = html.replace(/<\/ul><ul>/g,'').replace(/<\/ol><ol>/g,'');
+  return html;
+}
+
+function inlineFormat(text) {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[(.+?)\]\((https?:\/\/.+?)\)/g, (_, label, url) => {
+      const isGov = url.includes('.gov.au');
+      return `<a href="${url}" target="_blank" rel="noopener">${label}${isGov?' 🏛️':''}</a>`;
+    });
+}
+
+async function sendMessage(overrideText) {
+  const input = document.getElementById('chatInput');
+  const text = overrideText || input.value.trim();
+  if (!text || loading) return;
+  if (!apiKey) { showError('Please enter your API key first (see the yellow bar above).'); return; }
+
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('sendBtn').disabled = true;
+  hideError();
+
+  messages.push({ role:'user', content:text });
+  loading = true;
+  renderMessages();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: buildSystemPrompt(),
+        messages: messages.map(m => ({ role:m.role, content:m.content })),
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.error?.message || `API error ${res.status}`);
+    }
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'Could not generate a response. Please try again.';
+    messages.push({ role:'assistant', content:reply });
+  } catch(e) {
+    messages.pop(); // remove user message on failure
+    showError('Error: ' + e.message + '. Check your API key and try again.');
+  } finally {
+    loading = false;
+    renderMessages();
+    document.getElementById('sendBtn').disabled = false;
+  }
+}
+
+function showError(msg) {
+  const bar = document.getElementById('errBar');
+  bar.textContent = '⚠️ ' + msg;
+  bar.style.display = 'block';
+}
+function hideError() { document.getElementById('errBar').style.display = 'none'; }
+
+// ════════════════════════════════════════════════════════
+//  CHECKLIST
+// ════════════════════════════════════════════════════════
+
+function buildChecklist() {
+  if (profile) {
+    document.getElementById('clSubtitle').textContent =
+      `Personalised for your ${profile.visa.split('(')[0].trim()} visa — tackle in order for the smoothest start.`;
+  }
+  renderChecklist();
+}
+
+function renderChecklist() {
+  const allTasks = TASK_CATEGORIES.flatMap(c => c.tasks);
+  const doneCount = allTasks.filter(t => taskDone[t.id]).length;
+  const pct = Math.round((doneCount / allTasks.length) * 100);
+  document.getElementById('clProgress').textContent = `${doneCount} of ${allTasks.length} tasks complete`;
+  document.getElementById('clPct').textContent = pct + '%';
+  document.getElementById('pfill').style.width = pct + '%';
+
+  document.getElementById('taskList').innerHTML = TASK_CATEGORIES.map(cat => {
+    const catDone = cat.tasks.filter(t => taskDone[t.id]).length;
+    const isOpen = openCats[cat.id];
+    return `
+      <div class="cat-block">
+        <div class="cat-hdr" onclick="toggleCat('${cat.id}')">
+          <span class="cat-icon">${cat.icon}</span>
+          <span class="cat-name">${cat.name}</span>
+          <span class="cat-prog">${catDone}/${cat.tasks.length}</span>
+          <span class="cat-chev ${isOpen?'open':''}">▶</span>
+        </div>
+        ${isOpen ? `<div class="task-list">${cat.tasks.map(task => `
+          <div class="task ${taskDone[task.id]?'done':''} ${task.badge==='urgent'?'urgent':''} ${task.badge==='asap'?'asap':''}"
+               onclick="toggleTask('${task.id}')">
+            <div class="tcheck">${taskDone[task.id]?'✓':''}</div>
+            <div class="tbody">
+              <div class="tname">${task.name}</div>
+              <div class="tdesc">${task.desc}</div>
+              <div class="tbadges">
+                ${task.badge ? `<span class="badge b-${task.badge}">${
+                  task.badge==='asap'?'🔴 ASAP':
+                  task.badge==='urgent'?'⚡ Urgent':
+                  task.badge==='week1'?'Week 1':'Optional'
+                }</span>` : ''}
+                ${task.link ? `<a class="src-link" href="${task.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Official source 🏛️</a>` : ''}
+              </div>
+            </div>
+          </div>`).join('')}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function toggleTask(id) {
+  taskDone[id] = !taskDone[id];
+  localStorage.setItem('ac_tasks', JSON.stringify(taskDone));
+  renderChecklist();
+}
+
+function toggleCat(id) {
+  openCats[id] = !openCats[id];
+  renderChecklist();
+}
+
+// ════════════════════════════════════════════════════════
+//  DOCUMENT ANALYZER
+// ════════════════════════════════════════════════════════
+
+function buildDocTypes() {
+  document.getElementById('docTypeRow').innerHTML = DOC_TYPES.map(t =>
+    `<button class="chip ${t===docType?'sel':''}" onclick="setDocType('${t}')">${t}</button>`
+  ).join('');
+}
+
+function setDocType(t) {
+  docType = t;
+  buildDocTypes();
+}
+
+async function analyzeDoc() {
+  const text = document.getElementById('docPaste').value.trim();
+  if (!text) { alert('Please paste some document text first.'); return; }
+  if (!apiKey) { alert('Please enter your API key first.'); return; }
+
+  const btn = document.getElementById('analyzeBtn');
+  btn.textContent = 'Analyzing...';
+  btn.disabled = true;
+  document.getElementById('analysisResult').innerHTML = `
+    <div style="padding:20px;text-align:center;color:var(--text-soft);font-size:0.85rem">
+      <div class="typing" style="justify-content:center;margin-bottom:8px">
+        <div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>
+      </div>
+      Interpreting your ${docType}...
+    </div>`;
+
+  const prompt = `You are analyzing an Australian ${docType} for a new immigrant. Document text:
+
+---
+${text.slice(0, 3500)}
+---
+
+Return ONLY a valid JSON object (no markdown, no preamble) with this exact structure:
+{
+  "summary": "2-3 sentence plain English summary",
+  "keyFacts": ["fact 1", "fact 2", "fact 3"],
+  "redFlags": [{"level": "warn or danger", "text": "description"}],
+  "actionItems": ["action 1", "action 2"],
+  "keyDates": ["date or deadline description"],
+  "verdict": "ok or caution or concern",
+  "verdictText": "One sentence overall assessment"
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role:'user', content:prompt }]
+      })
+    });
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    const data = await res.json();
+    const raw = data.content?.[0]?.text || '{}';
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const result = JSON.parse(clean);
+    renderAnalysis(result);
+  } catch(e) {
+    document.getElementById('analysisResult').innerHTML =
+      `<div style="background:#fee2e2;padding:14px;border-radius:8px;font-size:0.83rem;color:#991b1b;margin-top:14px">⚠️ ${e.message}. Check your API key and try again.</div>`;
+  } finally {
+    btn.textContent = 'Analyze Document →';
+    btn.disabled = false;
+  }
+}
+
+function renderAnalysis(r) {
+  const vColor = { ok:'var(--green)', caution:'var(--gold)', concern:'var(--red)' };
+  const vBg    = { ok:'var(--green-pale)', caution:'var(--gold-pale)', concern:'var(--red-soft)' };
+  const vIcon  = { ok:'✅', caution:'⚠️', concern:'🚨' };
+
+  document.getElementById('analysisResult').innerHTML = `
+    <div class="analysis-card">
+      <div class="verdict-bar" style="background:${vBg[r.verdict]||'#eee'};color:${vColor[r.verdict]||'#333'}">
+        ${vIcon[r.verdict]||'📋'} ${r.verdictText || 'Analysis complete'}
+      </div>
+
+      ${r.summary ? `<div class="a-section">
+        <h4>Summary</h4>
+        <p style="font-size:0.86rem;color:var(--text-mid);line-height:1.6">${r.summary}</p>
+      </div>` : ''}
+
+      ${r.keyFacts?.length ? `<div class="a-section">
+        <h4>Key Facts</h4>
+        ${r.keyFacts.map(f=>`<div class="flag flag-ok"><span>📌</span><span>${f}</span></div>`).join('')}
+      </div>` : ''}
+
+      ${r.redFlags?.length ? `<div class="a-section">
+        <h4>Flags & Issues</h4>
+        ${r.redFlags.map(f=>`<div class="flag flag-${f.level}"><span>${f.level==='danger'?'🚨':'⚠️'}</span><span>${f.text}</span></div>`).join('')}
+      </div>` : ''}
+
+      ${r.actionItems?.length ? `<div class="a-section">
+        <h4>Action Items</h4>
+        ${r.actionItems.map((a,i)=>`<div class="action-item"><span class="action-num">${i+1}.</span><span>${a}</span></div>`).join('')}
+      </div>` : ''}
+
+      ${r.keyDates?.length ? `<div class="a-section">
+        <h4>Important Dates</h4>
+        ${r.keyDates.map(d=>`<div class="flag flag-warn"><span>📅</span><span>${d}</span></div>`).join('')}
+      </div>` : ''}
+    </div>`;
+}
+</script>
+</body>
+</html>
